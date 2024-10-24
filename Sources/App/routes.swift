@@ -9,14 +9,14 @@ func routes(_ app: Application) throws {
         "Hello, world!"
     }
     
-    app.get("planet") { req async throws in
-        try await Planet.query(on: req.db).all()
+    app.get("ibeacons") { req async throws in
+        try await IBeacon.query(on: req.db).all()
     }
     
-    app.post("planet") { req async throws -> Planet in
-        let galaxy = try req.content.decode(Planet.self)
-        try await galaxy.create(on: req.db)
-        return galaxy
+    app.post("ibeacon") { req async throws -> IBeacon in
+        let iBeacon = try req.content.decode(IBeacon.self)
+        try await iBeacon.create(on: req.db)
+        return iBeacon
     }
 
 }

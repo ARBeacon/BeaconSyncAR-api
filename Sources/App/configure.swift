@@ -31,7 +31,7 @@ public func configure(_ app: Application) async throws {
         as: .psql
     )
     
-    app.migrations.add(CreateGalaxy())
+    app.migrations.add(CreateIBeacon())
     
     // uncomment to serve files from /Public folder
     // app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
