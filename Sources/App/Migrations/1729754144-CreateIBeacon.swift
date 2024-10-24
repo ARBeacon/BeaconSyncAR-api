@@ -4,7 +4,6 @@
 //
 //  Created by Maitree Hirunteeyakul on 10/24/24.
 //
-
 import Fluent
 
 struct CreateIBeacon: AsyncMigration {

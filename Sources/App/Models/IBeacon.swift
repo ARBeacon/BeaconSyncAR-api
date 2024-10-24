@@ -8,6 +8,12 @@ import Vapor
 import Fluent
 import Foundation
 
+struct IBeaconData: Content {
+    let uuid: UUID
+    let major: Int
+    let minor: Int
+}
+
 final class IBeacon: Model, @unchecked Sendable, Content {
     // Name of the table or collection.
     static let schema = "ibeacons"
@@ -24,6 +30,9 @@ final class IBeacon: Model, @unchecked Sendable, Content {
     @Field(key: "minor")
     var minor: Int
     
+    @OptionalParent(key: "room_id")
+    var room: Room?
+    
     init() { }
     
     // Creates a new iBeacon with all properties set.
@@ -33,5 +42,17 @@ final class IBeacon: Model, @unchecked Sendable, Content {
         self.major = major
         self.minor = minor
     }
+    
+    static func getOneBeacon(
+        iBeaconData: IBeaconData,
+        on db: Database
+    ) async throws -> IBeacon? {
+        try await IBeacon.query(on: db)
+            .filter(\.$uuid == iBeaconData.uuid)
+            .filter(\.$major == iBeaconData.major)
+            .filter(\.$minor == iBeaconData.minor)
+            .first()
+    }
+    
 }
 

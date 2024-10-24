@@ -1,3 +1,9 @@
+//
+//  configure.swift
+//  BeaconSyncAR-api
+//
+//  Created by Maitree Hirunteeyakul on 10/24/24.
+//
 import Vapor
 import Fluent
 import FluentPostgresDriver
@@ -32,6 +38,8 @@ public func configure(_ app: Application) async throws {
     )
     
     app.migrations.add(CreateIBeacon())
+    app.migrations.add(CreateRoom())
+    app.migrations.add(AddIBeaconAddRoomAssociation())
     
     // uncomment to serve files from /Public folder
     // app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))

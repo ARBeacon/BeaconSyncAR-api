@@ -1,3 +1,9 @@
+//
+//  entrypoint.swift
+//  BeaconSyncAR-api
+//
+//  Created by Maitree Hirunteeyakul on 10/24/24.
+//
 import Vapor
 import Logging
 import NIOCore
