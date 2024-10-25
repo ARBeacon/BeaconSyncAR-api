@@ -7,6 +7,9 @@
 import Vapor
 
 func routes(_ app: Application) throws {
+    
+    let s3Adapter = S3Adapter(awsClient: app.aws.client, region: .apsoutheast1, bucket: .fyp_bucket)
+    
     app.get { req async in
         "It works!"
     }
@@ -131,6 +134,16 @@ func routes(_ app: Application) throws {
         room.name = newName
         try await room.update(on: req.db)
         return room
+    }
+    
+    app.get("test"){req async throws -> String in
+        let url = try await s3Adapter.generateUploadURL(filePath: "/ar-world-maps/test.txt", expiration: .minutes(15))
+        return url.absoluteString
+    }
+    
+    app.get("test2"){req async throws -> String in
+        let url = try await s3Adapter.generateDownloadURL(filePath: "/ar-world-maps/test.txt", expiration: .minutes(15))
+        return url.absoluteString
     }
     
 }

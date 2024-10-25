@@ -7,6 +7,7 @@
 import Vapor
 import Fluent
 import FluentPostgresDriver
+import SotoS3
 
 // configures your application
 public func configure(_ app: Application) async throws {
@@ -40,6 +41,14 @@ public func configure(_ app: Application) async throws {
     app.migrations.add(CreateIBeacon())
     app.migrations.add(CreateRoom())
     app.migrations.add(AddIBeaconAddRoomAssociation())
+    
+    app.aws.client = AWSClient(
+        credentialProvider:
+                .static(
+                    accessKeyId: Environment.get("AWS_S3_ACCESS_KEY_ID")!,
+                    secretAccessKey: Environment.get("AWS_S3_SECRETE_ACCESS_KEY")!
+                ),
+        httpClientProvider: .shared(app.http.client.shared))
     
     // uncomment to serve files from /Public folder
     // app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
