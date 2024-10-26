@@ -41,6 +41,10 @@ public func configure(_ app: Application) async throws {
     app.migrations.add(CreateIBeacon())
     app.migrations.add(CreateRoom())
     app.migrations.add(AddIBeaconAddRoomAssociation())
+    app.migrations.add(AddCreateAtUpdateAtDeleteAtForIBeacon())
+    app.migrations.add(AddCreateAtUpdateAtDeleteAtForRoom())
+    app.migrations.add(MakeCreateAtUpdateAtRequiredForIBeacon())
+    app.migrations.add(MakeCreateAtUpdateAtRequiredForRoom())
     
     app.aws.client = AWSClient(
         credentialProvider:
