@@ -45,6 +45,7 @@ public func configure(_ app: Application) async throws {
     app.migrations.add(AddCreateAtUpdateAtDeleteAtForRoom())
     app.migrations.add(MakeCreateAtUpdateAtRequiredForIBeacon())
     app.migrations.add(MakeCreateAtUpdateAtRequiredForRoom())
+    app.migrations.add(CreateARWorldMap())
     
     app.aws.client = AWSClient(
         credentialProvider:

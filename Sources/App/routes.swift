@@ -87,7 +87,7 @@ func routes(_ app: Application) throws {
         guard let roomId = req.parameters.get("roomID", as: UUID.self) else {
             throw Abort(.badRequest, reason: "Invalid room ID")
         }
-        guard let room = try await Room.getRoomFromIdWithIBeacons(on: req.db, id: roomId) else {
+        guard let room = try await Room.getRoomFromId(on: req.db, id: roomId) else {
             throw Abort(.badRequest, reason: "Room not found")
         }
         
@@ -99,7 +99,7 @@ func routes(_ app: Application) throws {
             throw Abort(.badRequest, reason: "Invalid room ID")
         }
         
-        guard let room = try await Room.getRoomFromIdWithIBeacons(on: req.db, id: roomId) else {
+        guard let room = try await Room.getRoomFromId(on: req.db, id: roomId) else {
             throw Abort(.notFound, reason: "Room not found")
         }
         
@@ -123,7 +123,7 @@ func routes(_ app: Application) throws {
         guard let roomId = req.parameters.get("roomID", as: UUID.self) else {
             throw Abort(.badRequest, reason: "Invalid room ID")
         }
-        guard let room = try await Room.getRoomFromIdWithIBeacons(on: req.db, id: roomId) else {
+        guard let room = try await Room.getRoomFromId(on: req.db, id: roomId) else {
             throw Abort(.badRequest, reason: "Room not found")
         }
         
@@ -136,14 +136,82 @@ func routes(_ app: Application) throws {
         return room
     }
     
-    app.get("test"){req async throws -> String in
-        let url = try await s3Adapter.generateUploadURL(filePath: "/ar-world-maps/test.txt", expiration: .minutes(15))
-        return url.absoluteString
+    app.get("room", ":roomID", "ARWorldMap", "getPresignedUploadUrl"){req async throws in
+        guard let roomId = req.parameters.get("roomID", as: UUID.self) else {
+            throw Abort(.badRequest, reason: "Invalid room ID")
+        }
+        guard let _ = try await Room.getRoomFromId(on: req.db, id: roomId) else {
+            throw Abort(.badRequest, reason: "Room not found")
+        }
+        
+        let uuid = UUID().uuidString
+        let url = try await s3Adapter.generateUploadURL(filePath: "/ar-world-maps/\(uuid).worldmap", expiration: .minutes(15))
+        let responseBody = [
+            "url": url.absoluteString,
+            "uuid": uuid
+        ]
+        
+        let response = Response(status: .ok)
+        try response.content.encode(responseBody, as: .json)
+        return response
     }
     
-    app.get("test2"){req async throws -> String in
-        let url = try await s3Adapter.generateDownloadURL(filePath: "/ar-world-maps/test.txt", expiration: .minutes(15))
-        return url.absoluteString
+    struct ARWorldMapPresignedUploadConfirmationRequestParams: Content {
+        let uuid: UUID
+        let old_uuid: UUID?
     }
     
+    app.post("room", ":roomID", "ARWorldMap", "presignedUploadConfirmation"){req async throws in
+        let params = try req.content.decode(ARWorldMapPresignedUploadConfirmationRequestParams.self)
+        let fileName = params.uuid.uuidString
+        let old_UUID = params.old_uuid
+        
+        guard let roomId = req.parameters.get("roomID", as: UUID.self) else {
+            throw Abort(.badRequest, reason: "Invalid room ID")
+        }
+        guard let room = try await Room.getRoomFromId(on: req.db, id: roomId) else {
+            throw Abort(.badRequest, reason: "Room not found")
+        }
+        
+        guard let oldARWorldMap = room.arWorldMap else {
+            if old_UUID != nil {
+                throw Abort(.conflict, reason: "Room don't have an associated ARWorldMap, Only new ARWorldMap can be submitted")
+            }
+            
+            let arWorldMap = ARWorldMap(fileName: fileName, roomID: roomId)
+            try await arWorldMap.create(on: req.db)
+            return arWorldMap
+        }
+        
+        guard let oldFileName = old_UUID?.uuidString else {
+            throw Abort(.conflict, reason: "Room already has an associated ARWorldMap, Only inhereted on latest ARWorldMap can be submitted")
+        }
+        if oldARWorldMap.fileName != oldFileName {
+            throw Abort(.conflict, reason: "The previous latest ARWorldMap for this room is not the one you are trying to reference")
+        }
+        
+        let arWorldMap = ARWorldMap(fileName: fileName, roomID: roomId, derivedFrom: oldARWorldMap.id)
+        try await oldARWorldMap.delete(force: false, on: req.db)
+        try await arWorldMap.create(on: req.db)
+        return arWorldMap
+        
+    }
+    
+    app.get("room", ":roomID", "ARWorldMap"){req async throws -> String in
+        guard let roomId = req.parameters.get("roomID", as: UUID.self) else {
+            throw Abort(.badRequest, reason: "Invalid room ID")
+        }
+        guard let room = try await Room.getRoomFromId(on: req.db, id: roomId) else {
+            throw Abort(.badRequest, reason: "Room not found")
+        }
+        
+        guard let arWorldMap = room.arWorldMap else {
+            throw Abort(.conflict, reason: "This Room don't have an associated ARWorldMap yet")
+        }
+        
+        let filePath = "/ar-world-maps/\(arWorldMap.fileName).worldmap"
+        let url = try await s3Adapter.generateDownloadURL(filePath: filePath, expiration: .minutes(15))
+        return url.absoluteString
+    }
+
 }

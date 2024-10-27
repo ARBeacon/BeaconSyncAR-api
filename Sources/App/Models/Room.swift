@@ -30,6 +30,9 @@ final class Room: Model, @unchecked Sendable, Content {
     @Children(for: \.$room)
     var iBeacons: [IBeacon]
     
+    @OptionalChild(for: \.$room)
+    var arWorldMap: ARWorldMap?
+    
     init() { }
     
     init(id: UUID? = nil, name: String) {
@@ -43,13 +46,14 @@ final class Room: Model, @unchecked Sendable, Content {
             .count()
     }
     
-    static func getRoomFromIdWithIBeacons(
+    static func getRoomFromId(
         on database: Database,
         id: UUID
     ) async throws -> Room? {
         return try await Room.query(on: database)
             .filter(\.$id == id)
             .with(\.$iBeacons)
+            .with(\.$arWorldMap)
             .first()
     }
 }
