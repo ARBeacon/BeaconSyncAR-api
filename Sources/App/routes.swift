@@ -225,7 +225,7 @@ func routes(_ app: Application) throws {
         guard let roomId = req.parameters.get("roomID", as: UUID.self) else {
             throw Abort(.badRequest, reason: "Invalid room ID")
         }
-        guard let room = try await Room.getRoomFromId(on: req.db, id: roomId) else {
+        guard let _ = try await Room.getRoomFromId(on: req.db, id: roomId) else {
             throw Abort(.badRequest, reason: "Room not found")
         }
         let cloudAnchor = CloudAnchor(anchorId: anchorId, roomID: roomId)
@@ -234,9 +234,6 @@ func routes(_ app: Application) throws {
     }
     
     app.get("room", ":roomID", "CloudAnchor", "list"){req async throws -> [CloudAnchor] in
-        let params = try req.content.decode(CloudAnchorNewRequestParams.self)
-        let anchorId = params.anchorId
-        
         guard let roomId = req.parameters.get("roomID", as: UUID.self) else {
             throw Abort(.badRequest, reason: "Invalid room ID")
         }
@@ -251,7 +248,7 @@ func routes(_ app: Application) throws {
         guard let roomId = req.parameters.get("roomID", as: UUID.self) else {
             throw Abort(.badRequest, reason: "Invalid room ID")
         }
-        guard let room = try await Room.getRoomFromId(on: req.db, id: roomId) else {
+        guard let _ = try await Room.getRoomFromId(on: req.db, id: roomId) else {
             throw Abort(.badRequest, reason: "Room not found")
         }
         
