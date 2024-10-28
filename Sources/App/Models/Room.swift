@@ -33,6 +33,9 @@ final class Room: Model, @unchecked Sendable, Content {
     @OptionalChild(for: \.$room)
     var arWorldMap: ARWorldMap?
     
+    @Children(for: \.$room)
+    var cloudAnchors: [CloudAnchor]
+    
     init() { }
     
     init(id: UUID? = nil, name: String) {
@@ -40,10 +43,19 @@ final class Room: Model, @unchecked Sendable, Content {
         self.name = name
     }
     
-    func countIBeacons(on database: Database) throws -> EventLoopFuture<Int> {
-        return IBeacon.query(on: database)
-            .filter(\.$room.$id == self.id!)
-            .count()
+    func countIBeacons(on database: Database) async throws -> Int {
+        let iBeacons = try await self.$iBeacons.query(on: database).all()
+        return iBeacons.count
+    }
+
+    func isARWorldMapPresent(on database: Database) async throws -> Bool {
+        let arWorldMap = try await self.$arWorldMap.query(on: database).first()
+        return arWorldMap != nil
+    }
+
+    func countCloudAnchors(on database: Database) async throws -> Int {
+        let cloudAnchors = try await self.$cloudAnchors.query(on: database).all()
+        return cloudAnchors.count
     }
     
     static func getRoomFromId(
@@ -54,6 +66,7 @@ final class Room: Model, @unchecked Sendable, Content {
             .filter(\.$id == id)
             .with(\.$iBeacons)
             .with(\.$arWorldMap)
+            .with(\.$cloudAnchors)
             .first()
     }
 }

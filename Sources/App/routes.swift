@@ -75,7 +75,7 @@ func routes(_ app: Application) throws {
         var roomResponses: [RoomResponse] = []
         
         for room in rooms {
-            let iBeaconCount = try await room.countIBeacons(on: req.db).get()
+            let iBeaconCount = try await room.countIBeacons(on: req.db)
             let response = RoomResponse(id: room.id, name: room.name, iBeaconCount: iBeaconCount)
             roomResponses.append(response)
         }
@@ -103,7 +103,7 @@ func routes(_ app: Application) throws {
             throw Abort(.notFound, reason: "Room not found")
         }
         
-        let iBeaconCount = try await room.countIBeacons(on: req.db).get()
+        let iBeaconCount = try await room.countIBeacons(on: req.db)
         
         if iBeaconCount > 0 {
             throw Abort(.conflict, reason: "Room cannot be deleted because it has associated iBeacons")
@@ -161,7 +161,7 @@ func routes(_ app: Application) throws {
         let old_uuid: UUID?
     }
     
-    app.post("room", ":roomID", "ARWorldMap", "presignedUploadConfirmation"){req async throws in
+    app.post("room", ":roomID", "ARWorldMap", "presignedUploadConfirmation"){req async throws -> ARWorldMap in
         let params = try req.content.decode(ARWorldMapPresignedUploadConfirmationRequestParams.self)
         let fileName = params.uuid.uuidString
         let old_UUID = params.old_uuid
@@ -212,6 +212,56 @@ func routes(_ app: Application) throws {
         let filePath = "/ar-world-maps/\(arWorldMap.fileName).worldmap"
         let url = try await s3Adapter.generateDownloadURL(filePath: filePath, expiration: .minutes(15))
         return url.absoluteString
+    }
+    
+    struct CloudAnchorNewRequestParams: Content {
+        let anchorId: String
+    }
+    
+    app.post("room", ":roomID", "CloudAnchor", "new"){req async throws -> CloudAnchor in
+        let params = try req.content.decode(CloudAnchorNewRequestParams.self)
+        let anchorId = params.anchorId
+        
+        guard let roomId = req.parameters.get("roomID", as: UUID.self) else {
+            throw Abort(.badRequest, reason: "Invalid room ID")
+        }
+        guard let room = try await Room.getRoomFromId(on: req.db, id: roomId) else {
+            throw Abort(.badRequest, reason: "Room not found")
+        }
+        let cloudAnchor = CloudAnchor(anchorId: anchorId, roomID: roomId)
+        try await cloudAnchor.create(on: req.db)
+        return cloudAnchor
+    }
+    
+    app.get("room", ":roomID", "CloudAnchor", "list"){req async throws -> [CloudAnchor] in
+        let params = try req.content.decode(CloudAnchorNewRequestParams.self)
+        let anchorId = params.anchorId
+        
+        guard let roomId = req.parameters.get("roomID", as: UUID.self) else {
+            throw Abort(.badRequest, reason: "Invalid room ID")
+        }
+        guard let room = try await Room.getRoomFromId(on: req.db, id: roomId) else {
+            throw Abort(.badRequest, reason: "Room not found")
+        }
+        
+        return room.cloudAnchors
+    }
+    
+    app.delete("room", ":roomID", "CloudAnchor", ":anchorId"){req async throws in
+        guard let roomId = req.parameters.get("roomID", as: UUID.self) else {
+            throw Abort(.badRequest, reason: "Invalid room ID")
+        }
+        guard let room = try await Room.getRoomFromId(on: req.db, id: roomId) else {
+            throw Abort(.badRequest, reason: "Room not found")
+        }
+        
+        guard let anchorId = req.parameters.get("anchorId", as: String.self)else {
+            throw Abort(.badRequest, reason: "anchorId are not provided")
+        }
+        
+        try await CloudAnchor.deleteOnMatch(anchorId: anchorId, roomId: roomId, on: req.db)
+        
+        return HTTPStatus.ok
     }
 
 }
