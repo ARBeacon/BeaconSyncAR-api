@@ -5,6 +5,7 @@
 //  Created by Maitree Hirunteeyakul on 28/10/2024.
 //
 import Fluent
+import SQLKit
 
 struct CreateCloudAnchor: AsyncMigration {
     func prepare(on database: Database) async throws {
@@ -15,8 +16,14 @@ struct CreateCloudAnchor: AsyncMigration {
             .field("deleted_at", .datetime)
             .field("hosted_anchor_id", .string, .required)
             .field("room_id", .uuid, .references("rooms", .id), .required)
-            .unique(on: "hosted_anchor_id", "room_id")
             .create()
+        
+        try await (database as! SQLDatabase).raw("""
+            CREATE UNIQUE INDEX 
+            ON cloud_anchors (hosted_anchor_id, room_id)
+            WHERE deleted_at IS NULL
+            """)
+            .run()
     }
     
     func revert(on database: Database) async throws {
