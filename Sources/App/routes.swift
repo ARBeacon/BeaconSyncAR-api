@@ -25,12 +25,21 @@ func routes(_ app: Application) throws {
         return iBeacon
     }
     
+    app.delete("ibeacon") { req async throws in
+        let iBeaconData = try req.content.decode(IBeaconData.self)
+        guard let iBeacon = try await IBeacon.getOneBeacon(iBeaconData: iBeaconData, on: req.db) else {
+            throw Abort(.badRequest, reason: "iBeacon not found.")
+        }
+        try await iBeacon.delete(on: req.db)
+        return HTTPStatus.ok
+    }
+    
     struct IBeaconAttachRoomRequestParams: Content {
         let iBeaconData: IBeaconData
         let roomId: UUID
     }
     
-    app.patch("ibeacon", "attachRoom") { req async throws -> IBeacon in
+    app.post("ibeacon", "attachRoom") { req async throws -> IBeacon in
         let params = try req.content.decode(IBeaconAttachRoomRequestParams.self)
         guard let iBeacon = try await IBeacon.getOneBeacon(iBeaconData: params.iBeaconData, on: req.db) else {
             throw Abort(.badRequest, reason: "iBeacon is not registered.")
@@ -49,7 +58,7 @@ func routes(_ app: Application) throws {
         return iBeacon
     }
     
-    app.delete("ibeacon", "detachRoom") { req async throws -> IBeacon in
+    app.post("ibeacon", "detachRoom") { req async throws -> IBeacon in
         let iBeaconData = try req.content.decode(IBeaconData.self)
         
         guard let iBeacon = try await IBeacon.getOneBeacon(iBeaconData: iBeaconData, on: req.db) else {
@@ -104,9 +113,7 @@ func routes(_ app: Application) throws {
             throw Abort(.notFound, reason: "Room not found")
         }
         
-        let iBeaconCount = try await room.countIBeacons(on: req.db)
-        
-        if iBeaconCount > 0 {
+        if try await room.countIBeacons(on: req.db) > 0 {
             throw Abort(.conflict, reason: "Room cannot be deleted because it has associated iBeacons")
         }
         
