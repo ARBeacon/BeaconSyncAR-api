@@ -19,7 +19,8 @@ func routes(_ app: Application) throws {
     }
     
     app.post("ibeacon", "new") { req async throws -> IBeacon in
-        let iBeacon = try req.content.decode(IBeacon.self)
+        let iBeaconData = try req.content.decode(IBeaconData.self)
+        let iBeacon = IBeacon(uuid: iBeaconData.uuid, major: iBeaconData.major, minor: iBeaconData.minor)
         try await iBeacon.create(on: req.db)
         return iBeacon
     }
