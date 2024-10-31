@@ -74,7 +74,7 @@ func routes(_ app: Application) throws {
         return iBeacon
     }
     
-    app.get("ibeacon", "getRoom"){ req async throws -> Room in
+    app.post("ibeacon", "getRoom"){ req async throws -> Room in
         let iBeaconData = try req.content.decode(IBeaconData.self)
         
         guard let iBeacon = try await IBeacon.getOneBeacon(iBeaconData: iBeaconData, on: req.db) else {
