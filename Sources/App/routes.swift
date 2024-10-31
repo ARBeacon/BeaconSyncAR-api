@@ -209,10 +209,10 @@ func routes(_ app: Application) throws {
             return arWorldMap
         }
         
-        guard let oldFileName = old_UUID?.uuidString else {
+        guard let declaredOldUUID = old_UUID else {
             throw Abort(.conflict, reason: "Room already has an associated ARWorldMap, Only inhereted on latest ARWorldMap can be submitted")
         }
-        if oldARWorldMap.fileName != oldFileName {
+        if oldARWorldMap.id! != declaredOldUUID {
             throw Abort(.conflict, reason: "The previous latest ARWorldMap for this room is not the one you are trying to reference")
         }
         
