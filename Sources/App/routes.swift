@@ -74,6 +74,24 @@ func routes(_ app: Application) throws {
         return iBeacon
     }
     
+    app.get("ibeacon", "getRoom"){ req async throws -> Room in
+        let iBeaconData = try req.content.decode(IBeaconData.self)
+        
+        guard let iBeacon = try await IBeacon.getOneBeacon(iBeaconData: iBeaconData, on: req.db) else {
+            throw Abort(.badRequest, reason: "iBeacon is not registered.")
+        }
+        
+        guard let roomId = iBeacon.$room.id else {
+            throw Abort(.badRequest, reason: "No room is currently associated with this iBeacon.")
+        }
+        
+        guard let room = try await Room.getRoomFromId(on: req.db, id: roomId) else {
+            throw Abort(.badRequest, reason: "Room not found")
+        }
+        
+        return room
+    }
+    
     struct RoomResponse: Content {
         let id: UUID?
         let name: String
