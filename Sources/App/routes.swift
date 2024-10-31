@@ -223,7 +223,7 @@ func routes(_ app: Application) throws {
         
     }
     
-    app.get("room", ":roomID", "ARWorldMap"){req async throws -> String in
+    app.get("room", ":roomID", "ARWorldMap"){req async throws in
         guard let roomId = req.parameters.get("roomID", as: UUID.self) else {
             throw Abort(.badRequest, reason: "Invalid room ID")
         }
@@ -237,7 +237,14 @@ func routes(_ app: Application) throws {
         
         let filePath = "/ar-world-maps/\(arWorldMap.fileName).worldmap"
         let url = try await s3Adapter.generateDownloadURL(filePath: filePath, expiration: .minutes(15))
-        return url.absoluteString
+        let responseBody = [
+            "url": url.absoluteString,
+            "uuid": arWorldMap.id!.uuidString
+        ]
+        
+        let response = Response(status: .ok)
+        try response.content.encode(responseBody, as: .json)
+        return response
     }
     
     struct CloudAnchorNewRequestParams: Content {
