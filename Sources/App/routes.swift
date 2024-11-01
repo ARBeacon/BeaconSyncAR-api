@@ -224,7 +224,7 @@ func routes(_ app: Application) throws {
     
     struct ARWorldMapUploadRequestParams: Content {
         let prev_uuid: UUID?
-        let dataUTF8Encoded: String
+        let dataBase64Encoded: String
     }
     
     app.on(.POST,"room", ":roomID", "ARWorldMap", "upload", body: .collect(maxSize: "1gb")) { req async throws -> ARWorldMap in
@@ -240,7 +240,7 @@ func routes(_ app: Application) throws {
         
         let fileName = UUID().uuidString
         let filePath = "/ar-world-maps/\(fileName).worldmap"
-        guard let data = params.dataUTF8Encoded.data(using: .utf8) else {
+        guard let data = Data(base64Encoded: params.dataBase64Encoded) else {
             throw Abort(.badRequest, reason: "dataBase64Encoded cannot be decoded")
         }
         try await s3Adapter.upload(data: data, to: filePath)
@@ -283,7 +283,7 @@ func routes(_ app: Application) throws {
         let filePath = "/ar-world-maps/\(arWorldMap.fileName).worldmap"
         let data = try await s3Adapter.download(from: filePath)
         let responseBody = [
-            "dataUTF8Encoded": String(data: data, encoding: .utf8),
+            "dataBase64Encoded": data.base64EncodedString(),
             "uuid": arWorldMap.id!.uuidString
         ]
         
