@@ -7,6 +7,7 @@
 
 import Vapor
 import SotoS3
+import Foundation
 
 final class S3Adapter: @unchecked Sendable {
     
