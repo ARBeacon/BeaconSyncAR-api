@@ -174,7 +174,7 @@ func routes(_ app: Application) throws {
         let url = try await s3Adapter.generateUploadURL(filePath: "/ar-world-maps/\(uuid).worldmap", expiration: .minutes(15))
         let responseBody = [
             "url": url.absoluteString,
-            "uuid": uuid
+            "fileName": uuid
         ]
         
         let response = Response(status: .ok)
@@ -183,13 +183,13 @@ func routes(_ app: Application) throws {
     }
     
     struct ARWorldMapPresignedUploadConfirmationRequestParams: Content {
-        let uuid: UUID
+        let fileName: String
         let old_uuid: UUID?
     }
     
     app.post("room", ":roomID", "ARWorldMap", "presignedUploadConfirmation"){req async throws -> ARWorldMap in
         let params = try req.content.decode(ARWorldMapPresignedUploadConfirmationRequestParams.self)
-        let fileName = params.uuid.uuidString
+        let fileName = params.fileName
         let old_UUID = params.old_uuid
         
         guard let roomId = req.parameters.get("roomID", as: UUID.self) else {
@@ -220,10 +220,79 @@ func routes(_ app: Application) throws {
         try await oldARWorldMap.delete(force: false, on: req.db)
         try await arWorldMap.create(on: req.db)
         return arWorldMap
+    }
+    
+    struct ARWorldMapUploadRequestParams: Content {
+        let prev_uuid: UUID?
+        let dataUTF8Encoded: String
+    }
+    
+    app.on(.POST,"room", ":roomID", "ARWorldMap", "upload", body: .collect(maxSize: "1gb")) { req async throws -> ARWorldMap in
+        let params = try req.content.decode(ARWorldMapUploadRequestParams.self)
+        let prevUUID = params.prev_uuid
         
+        guard let roomId = req.parameters.get("roomID", as: UUID.self) else {
+            throw Abort(.badRequest, reason: "Invalid room ID")
+        }
+        guard let room = try await Room.getRoomFromId(on: req.db, id: roomId) else {
+            throw Abort(.badRequest, reason: "Room not found")
+        }
+        
+        let fileName = UUID().uuidString
+        let filePath = "/ar-world-maps/\(fileName).worldmap"
+        guard let data = params.dataUTF8Encoded.data(using: .utf8) else {
+            throw Abort(.badRequest, reason: "dataBase64Encoded cannot be decoded")
+        }
+        try await s3Adapter.upload(data: data, to: filePath)
+        
+        guard let oldARWorldMap = room.arWorldMap else {
+            if prevUUID != nil {
+                throw Abort(.conflict, reason: "Room don't have an associated ARWorldMap, Only new ARWorldMap can be submitted")
+            }
+            
+            let arWorldMap = ARWorldMap(fileName: fileName, roomID: roomId)
+            try await arWorldMap.create(on: req.db)
+            return arWorldMap
+        }
+        
+        guard let declaredPrevUUID = prevUUID else {
+            throw Abort(.conflict, reason: "Room already has an associated ARWorldMap, Only inhereted on latest ARWorldMap can be submitted")
+        }
+        if oldARWorldMap.id! != declaredPrevUUID {
+            throw Abort(.conflict, reason: "The previous latest ARWorldMap for this room is not match your reference.")
+        }
+        
+        let arWorldMap = ARWorldMap(fileName: fileName, roomID: roomId, derivedFrom: oldARWorldMap.id)
+        try await oldARWorldMap.delete(force: false, on: req.db)
+        try await arWorldMap.create(on: req.db)
+        return arWorldMap
     }
     
     app.get("room", ":roomID", "ARWorldMap"){req async throws in
+        guard let roomId = req.parameters.get("roomID", as: UUID.self) else {
+            throw Abort(.badRequest, reason: "Invalid room ID")
+        }
+        guard let room = try await Room.getRoomFromId(on: req.db, id: roomId) else {
+            throw Abort(.badRequest, reason: "Room not found")
+        }
+        
+        guard let arWorldMap = room.arWorldMap else {
+            throw Abort(.conflict, reason: "This Room don't have an associated ARWorldMap yet")
+        }
+        
+        let filePath = "/ar-world-maps/\(arWorldMap.fileName).worldmap"
+        let data = try await s3Adapter.download(from: filePath)
+        let responseBody = [
+            "dataUTF8Encoded": String(data: data, encoding: .utf8),
+            "uuid": arWorldMap.id!.uuidString
+        ]
+        
+        let response = Response(status: .ok)
+        try response.content.encode(responseBody, as: .json)
+        return response
+    }
+    
+    app.get("room", ":roomID", "ARWorldMap", "getPresignedDownloadUrl"){req async throws in
         guard let roomId = req.parameters.get("roomID", as: UUID.self) else {
             throw Abort(.badRequest, reason: "Invalid room ID")
         }
@@ -293,5 +362,5 @@ func routes(_ app: Application) throws {
         
         return HTTPStatus.ok
     }
-
+    
 }

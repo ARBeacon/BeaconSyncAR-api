@@ -45,18 +45,44 @@ final class S3Adapter: @unchecked Sendable {
     func generateDownloadURL(filePath: String, expiration: TimeAmount) async throws -> URL {
         return try await generateURL(filePath: filePath, httpMethod: .GET, expiration: expiration)
     }
+    
+    func upload(data: Data, to filePath: String) async throws {
+        let uploadLink = try await generateUploadURL(filePath: filePath, expiration: .minutes(15))
+        var request = URLRequest(url: uploadLink)
+        request.httpMethod = "PUT"
+        request.httpBody = data
+        
+        let (responseData, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            throw URLError(.badServerResponse)
+        }
+    }
+    
+    func download(from filePath: String) async throws -> Data {
+        let downloadLink = try await generateDownloadURL(filePath: filePath, expiration: .minutes(15))
+        let (data, response) = try await URLSession.shared.data(from: downloadLink)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            throw URLError(.badServerResponse)
+        }
+        
+        return data
+    }
 }
 
 public extension Application {
     var aws: AWS {
         .init(application: self)
     }
-
+    
     struct AWS {
         struct ClientKey: StorageKey {
             typealias Value = AWSClient
         }
-
+        
         public var client: AWSClient {
             get {
                 guard let client = self.application.storage[ClientKey.self] else {
@@ -70,7 +96,7 @@ public extension Application {
                 }
             }
         }
-
+        
         let application: Application
     }
 }
@@ -79,12 +105,12 @@ public extension Request {
     var aws: AWS {
         .init(request: self)
     }
-
+    
     struct AWS {
         var client: AWSClient {
             return request.application.aws.client
         }
-
+        
         let request: Request
     }
 }
