@@ -7,7 +7,11 @@
 
 import Vapor
 import SotoS3
-import Foundation
+
+// https://github.com/swiftlang/swift-corelibs-foundation/issues/3968#issuecomment-1118900426
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 final class S3Adapter: @unchecked Sendable {
     
