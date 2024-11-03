@@ -29,12 +29,16 @@ final class CloudAnchor: Model, @unchecked Sendable, Content {
     @Parent(key: "room_id")
     var room: Room
     
+    @Field(key: "expire_at")
+    var expireAt: Date
+    
     init() { }
     
-    init(id: UUID? = nil, anchorId: String, roomID: Room.IDValue) {
+    init(id: UUID? = nil, anchorId: String, roomID: Room.IDValue, expireAt: Date) {
         self.id = id
         self.anchorId = anchorId
         self.$room.id = roomID
+        self.expireAt = expireAt
     }
     
     static func deleteOnMatch(

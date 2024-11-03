@@ -330,7 +330,10 @@ func routes(_ app: Application) throws {
         guard let _ = try await Room.getRoomFromId(on: req.db, id: roomId) else {
             throw Abort(.badRequest, reason: "Room not found")
         }
-        let cloudAnchor = CloudAnchor(anchorId: anchorId, roomID: roomId)
+        
+        let expireDate = try await ARCoreManagementAdapter.maximizeCloudAnchorTTL(anchorId)
+        
+        let cloudAnchor = CloudAnchor(anchorId: anchorId, roomID: roomId, expireAt: expireDate)
         try await cloudAnchor.create(on: req.db)
         return cloudAnchor
     }
@@ -343,7 +346,7 @@ func routes(_ app: Application) throws {
             throw Abort(.badRequest, reason: "Room not found")
         }
         
-        return room.cloudAnchors
+        return try await room.getAliveCloudAnchors(on: req.db)
     }
     
     app.delete("room", ":roomID", "CloudAnchor", ":anchorId"){req async throws in

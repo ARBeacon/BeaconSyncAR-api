@@ -47,14 +47,21 @@ final class Room: Model, @unchecked Sendable, Content {
         let iBeacons = try await self.$iBeacons.query(on: database).all()
         return iBeacons.count
     }
-
+    
     func isARWorldMapPresent(on database: Database) async throws -> Bool {
         let arWorldMap = try await self.$arWorldMap.query(on: database).first()
         return arWorldMap != nil
     }
-
+    
+    func getAliveCloudAnchors(on database: Database) async throws -> [CloudAnchor] {
+        return try await self.$cloudAnchors
+            .query(on: database)
+            .filter(\.$expireAt > Date.now)
+            .all()
+    }
+    
     func countCloudAnchors(on database: Database) async throws -> Int {
-        let cloudAnchors = try await self.$cloudAnchors.query(on: database).all()
+        let cloudAnchors = try await getAliveCloudAnchors(on: database)
         return cloudAnchors.count
     }
     
@@ -66,7 +73,6 @@ final class Room: Model, @unchecked Sendable, Content {
             .filter(\.$id == id)
             .with(\.$iBeacons)
             .with(\.$arWorldMap)
-            .with(\.$cloudAnchors)
             .first()
     }
 }

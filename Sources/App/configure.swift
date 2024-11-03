@@ -47,6 +47,7 @@ public func configure(_ app: Application) async throws {
     app.migrations.add(MakeCreateAtUpdateAtRequiredForRoom())
     app.migrations.add(CreateARWorldMap())
     app.migrations.add(CreateCloudAnchor())
+    app.migrations.add(AddExpireAtForCloudAnchor())
     
     app.aws.client = AWSClient(
         credentialProvider:
