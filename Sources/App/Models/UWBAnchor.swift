@@ -56,27 +56,55 @@ final class UWBAnchor: Model, @unchecked Sendable, Content {
     }
 }
 
-import simd
-extension simd_float4x4: Codable {
+// REFERENCE FOR IOS
+//import simd
+//extension simd_float4x4: Codable {
+//    private enum CodingKeys: String, CodingKey {
+//        case col0, col1, col2, col3
+//    }
+//
+//    public func encode(to encoder: Encoder) throws {
+//        var container = encoder.container(keyedBy: CodingKeys.self)
+//        try container.encode(columns.0, forKey: .col0)
+//        try container.encode(columns.1, forKey: .col1)
+//        try container.encode(columns.2, forKey: .col2)
+//        try container.encode(columns.3, forKey: .col3)
+//    }
+//
+//    public init(from decoder: Decoder) throws {
+//        let container = try decoder.container(keyedBy: CodingKeys.self)
+//        let col0 = try container.decode(simd_float4.self, forKey: .col0)
+//        let col1 = try container.decode(simd_float4.self, forKey: .col1)
+//        let col2 = try container.decode(simd_float4.self, forKey: .col2)
+//        let col3 = try container.decode(simd_float4.self, forKey: .col3)
+//        self.init(columns: (col0, col1, col2, col3))
+//    }
+//}
+
+final class simd_float4x4: Codable, Sendable {
+    private let col0: [Float]
+    private let col1: [Float]
+    private let col2: [Float]
+    private let col3: [Float]
+    
     private enum CodingKeys: String, CodingKey {
         case col0, col1, col2, col3
     }
     
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(columns.0, forKey: .col0)
-        try container.encode(columns.1, forKey: .col1)
-        try container.encode(columns.2, forKey: .col2)
-        try container.encode(columns.3, forKey: .col3)
+        try container.encode(col0, forKey: .col0)
+        try container.encode(col1, forKey: .col1)
+        try container.encode(col2, forKey: .col2)
+        try container.encode(col3, forKey: .col3)
     }
     
-    public init(from decoder: Decoder) throws {
+    required public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        let col0 = try container.decode(simd_float4.self, forKey: .col0)
-        let col1 = try container.decode(simd_float4.self, forKey: .col1)
-        let col2 = try container.decode(simd_float4.self, forKey: .col2)
-        let col3 = try container.decode(simd_float4.self, forKey: .col3)
-        self.init(columns: (col0, col1, col2, col3))
+        col0 = try container.decode([Float].self, forKey: .col0)
+        col1 = try container.decode([Float].self, forKey: .col1)
+        col2 = try container.decode([Float].self, forKey: .col2)
+        col3 = try container.decode([Float].self, forKey: .col3)
     }
 }
 
