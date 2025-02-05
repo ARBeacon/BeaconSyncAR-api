@@ -5,6 +5,7 @@
 //  Created by Maitree Hirunteeyakul on 10/24/24.
 //
 import Vapor
+import simd
 
 func routes(_ app: Application) throws {
     
@@ -357,7 +358,7 @@ func routes(_ app: Application) throws {
             throw Abort(.badRequest, reason: "Room not found")
         }
         
-        guard let anchorId = req.parameters.get("anchorId", as: String.self)else {
+        guard let anchorId = req.parameters.get("anchorId", as: String.self) else {
             throw Abort(.badRequest, reason: "anchorId are not provided")
         }
         
@@ -366,4 +367,38 @@ func routes(_ app: Application) throws {
         return HTTPStatus.ok
     }
     
+    app.post("UWBAnchor", ":uwbBeaconName", "new") { req async throws -> UWBAnchor in
+        struct NewUWBAnchorRequestParams: Content {
+            let relativeTransform: simd_float4x4
+        }
+        
+        let params = try req.content.decode(NewUWBAnchorRequestParams.self)
+        guard let uwbBeaconName = req.parameters.get("uwbBeaconName", as: String.self) else {
+            throw Abort(.badRequest, reason: "Invalid room ID")
+        }
+        
+        let relativeTransform = params.relativeTransform
+        let uwbAnchor = UWBAnchor(uwbBeaconName: uwbBeaconName, relativeTransform: relativeTransform)
+        try await uwbAnchor.create(on: req.db)
+        return uwbAnchor
+    }
+    
+    app.get( "UWBAnchor", ":uwbBeaconName", "list") { req async throws -> [UWBAnchor] in
+        guard let uwbBeaconName = req.parameters.get("uwbBeaconName", as: String.self) else {
+            throw Abort(.badRequest, reason: "Invalid room ID")
+        }
+        let uwbAnchors = try await UWBAnchor.getUWBAnchoraFromUWBBeaconName(on: req.db, uwbBeaconName: uwbBeaconName)
+        return uwbAnchors
+    }
+    
+    app.delete("UWBAnchor", ":id"){req async throws in
+        guard let id = req.parameters.get("id", as: UUID.self) else {
+            throw Abort(.badRequest, reason: "Invalid uwbAnchor ID")
+        }
+        guard let uwbAnchor = try await UWBAnchor.getUWBAnchorFromId(on: req.db, id: id) else {
+            throw Abort(.badRequest, reason: "UWBAnchor not found")
+        }
+        try await uwbAnchor.delete(on: req.db)
+        return HTTPStatus.ok
+    }
 }

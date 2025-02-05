@@ -48,6 +48,7 @@ public func configure(_ app: Application) async throws {
     app.migrations.add(CreateARWorldMap())
     app.migrations.add(CreateCloudAnchor())
     app.migrations.add(AddExpireAtForCloudAnchor())
+    app.migrations.add(CreateUWBAnchor())
     
     app.aws.client = AWSClient(
         credentialProvider:
