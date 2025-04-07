@@ -8,6 +8,7 @@ A Swift Vapor backend service for the BLE & UWB Beacon-Assisted AR Synchronizati
 - Vapor 4.99.3+
 - PostgreSQL (local or remote)
 - S3-compatible storage (DigitalOcean Spaces, AWS S3, etc.)
+- Running [BeaconSyncAR-namespace-functions](https://github.com/ARBeacon/BeaconSyncAR-namespace-functions) Service
 
 ### Local Development
 

@@ -13,7 +13,7 @@ import FoundationNetworking
 final class ARCoreManagementAdapter: @unchecked Sendable {
     
     private static func getARCoreManagementAPIToken() async throws -> String {
-        let url = URL(string: "https://faas-sgp1-18bc02ac.doserverless.co/api/v1/web/fn-98fbf563-7e15-4b23-aee3-1bc580a8ad42/arcore/getToken")!
+        let url = URL(string: Environment.get("ARCORE_API_OAUTH2_GENERATOR_URL")!)!
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         let (data, response) = try await URLSession.shared.data(for: request)
