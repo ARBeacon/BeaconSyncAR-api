@@ -1,5 +1,7 @@
 # BeaconSyncAR API
 A Swift Vapor backend service for the BLE & UWB Beacon-Assisted AR Synchronization project.
+![Picture1](https://github.com/user-attachments/assets/9f140c87-4d79-4ea9-b69a-9689a4870f7d)
+
 
 ## 🚀 Development Setup
 
