@@ -48,3 +48,4 @@ The API provides endpoints for:
 
 For detailed API documentation, refer to the [project's final report](https://github.com/ARBeacon/Docs/blob/main/Reports/Final%20Report.pdf) or examine the route definitions in `Sources/App/routes.swift`.
 
+_Note: This README.md was refined with the assistance of [DeepSeek](https://www.deepseek.com)_
